@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "builds": [
     {
       "src": "api/index.py",
@@ -10,12 +9,6 @@
     {
       "src": "/(.*)",
       "dest": "api/index.py"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/v1/cron/poll-prices",
-      "schedule": "* * * * *"
     }
   ]
 }
