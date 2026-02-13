@@ -1,0 +1,168 @@
+// ============================================================
+// Signal Bridge — TradingView Price Level Monitor
+// ============================================================
+//
+// PURPOSE:
+// This indicator monitors active signal levels (TP1/TP2/TP3/SL)
+// and fires webhook alerts when price crosses them.
+//
+// HOW IT WORKS:
+// 1. You configure your Signal Bridge API URL below
+// 2. The indicator checks for active signals on this symbol
+// 3. When price crosses a TP or SL level, it fires a webhook
+// 4. The webhook goes to your Signal Bridge backend
+// 5. Your backend updates the signal status and sends notifications
+//
+// SETUP:
+// 1. Add this indicator to your NQ/MNQ chart (or any monitored symbol)
+// 2. Set the "Webhook URL" input to your Signal Bridge endpoint
+// 3. Create an alert on this indicator with webhook notifications
+// 4. In the alert dialog:
+//    - Condition: "Signal Bridge Monitor" → "Any alert() function call"
+//    - Webhook URL: https://your-bridge.com/api/v1/webhook/pinescript
+//    - Message: leave as {{message}} (the indicator fills it)
+//
+// IMPORTANT:
+// - You need TradingView Pro or higher for webhook alerts
+// - Each symbol needs its own indicator instance + alert
+// - The indicator uses plot levels for visual reference
+//
+// ============================================================
+
+//@version=5
+indicator("Signal Bridge Monitor", overlay=true, max_labels_count=50)
+
+// ============================================================
+// INPUTS — Configure your signal levels here
+// ============================================================
+// These are set manually or via TradingView's "Template" feature.
+// In a future version, these could be fetched from an external API.
+
+i_signal_id     = input.string("", "Signal ID", tooltip="UUID of the active signal in your bridge")
+i_direction     = input.string("LONG", "Direction", options=["LONG", "SHORT"])
+i_entry         = input.float(0.0, "Entry Price")
+i_tp1           = input.float(0.0, "Take Profit 1")
+i_tp2           = input.float(0.0, "Take Profit 2 (0 = none)")
+i_tp3           = input.float(0.0, "Take Profit 3 (0 = none)")
+i_sl            = input.float(0.0, "Stop Loss")
+i_enabled       = input.bool(true, "Enable Monitoring")
+
+// ============================================================
+// STATE TRACKING
+// ============================================================
+// Track whether we've already fired each alert (fire once only)
+var bool entry_hit_fired = false
+var bool tp1_hit_fired   = false
+var bool tp2_hit_fired   = false
+var bool tp3_hit_fired   = false
+var bool sl_hit_fired    = false
+var bool is_active       = false
+
+// Reset if signal ID changes
+if i_signal_id != i_signal_id[1]
+    entry_hit_fired := false
+    tp1_hit_fired   := false
+    tp2_hit_fired   := false
+    tp3_hit_fired   := false
+    sl_hit_fired    := false
+    is_active       := false
+
+// ============================================================
+// LEVEL MONITORING
+// ============================================================
+is_long = i_direction == "LONG"
+
+// Only monitor if enabled and signal ID is set
+monitor_active = i_enabled and i_signal_id != "" and i_entry > 0
+
+if monitor_active
+    // --- Entry Hit Detection ---
+    if not entry_hit_fired
+        entry_triggered = is_long ? low <= i_entry : high >= i_entry
+        if entry_triggered
+            entry_hit_fired := true
+            is_active := true
+            alert(
+              '{"signal_id":"' + i_signal_id + '","event_type":"ENTRY_HIT","price":' + str.tostring(close) + ',"symbol":"' + syminfo.ticker + '","timestamp":"' + str.tostring(timenow) + '"}',
+              alert.freq_once_per_bar_close
+            )
+
+    // --- Only check TP/SL if entry was hit ---
+    if is_active
+        // --- SL Hit (check first, priority) ---
+        if not sl_hit_fired
+            sl_triggered = is_long ? low <= i_sl : high >= i_sl
+            if sl_triggered
+                sl_hit_fired := true
+                is_active := false
+                alert(
+                  '{"signal_id":"' + i_signal_id + '","event_type":"SL_HIT","price":' + str.tostring(is_long ? i_sl : i_sl) + ',"symbol":"' + syminfo.ticker + '","timestamp":"' + str.tostring(timenow) + '"}',
+                  alert.freq_once_per_bar_close
+                )
+
+        // --- TP1 Hit ---
+        if not tp1_hit_fired and not sl_hit_fired
+            tp1_triggered = is_long ? high >= i_tp1 : low <= i_tp1
+            if tp1_triggered
+                tp1_hit_fired := true
+                alert(
+                  '{"signal_id":"' + i_signal_id + '","event_type":"TP1_HIT","price":' + str.tostring(i_tp1) + ',"symbol":"' + syminfo.ticker + '","timestamp":"' + str.tostring(timenow) + '"}',
+                  alert.freq_once_per_bar_close
+                )
+
+        // --- TP2 Hit ---
+        if tp1_hit_fired and not tp2_hit_fired and not sl_hit_fired and i_tp2 > 0
+            tp2_triggered = is_long ? high >= i_tp2 : low <= i_tp2
+            if tp2_triggered
+                tp2_hit_fired := true
+                alert(
+                  '{"signal_id":"' + i_signal_id + '","event_type":"TP2_HIT","price":' + str.tostring(i_tp2) + ',"symbol":"' + syminfo.ticker + '","timestamp":"' + str.tostring(timenow) + '"}',
+                  alert.freq_once_per_bar_close
+                )
+
+        // --- TP3 Hit ---
+        if tp2_hit_fired and not tp3_hit_fired and not sl_hit_fired and i_tp3 > 0
+            tp3_triggered = is_long ? high >= i_tp3 : low <= i_tp3
+            if tp3_triggered
+                tp3_hit_fired := true
+                is_active := false
+                alert(
+                  '{"signal_id":"' + i_signal_id + '","event_type":"TP3_HIT","price":' + str.tostring(i_tp3) + ',"symbol":"' + syminfo.ticker + '","timestamp":"' + str.tostring(timenow) + '"}',
+                  alert.freq_once_per_bar_close
+                )
+
+// ============================================================
+// VISUAL — Draw levels on chart
+// ============================================================
+plot(monitor_active and i_entry > 0 ? i_entry : na, "Entry", color=color.white, linewidth=2, style=plot.style_linebr)
+plot(monitor_active and i_tp1 > 0 ? i_tp1 : na, "TP1", color=color.green, linewidth=1, style=plot.style_linebr)
+plot(monitor_active and i_tp2 > 0 ? i_tp2 : na, "TP2", color=color.lime, linewidth=1, style=plot.style_linebr)
+plot(monitor_active and i_tp3 > 0 ? i_tp3 : na, "TP3", color=color.teal, linewidth=1, style=plot.style_linebr)
+plot(monitor_active and i_sl > 0 ? i_sl : na, "SL", color=color.red, linewidth=2, style=plot.style_linebr)
+
+// Status label
+var label status_label = na
+if monitor_active and barstate.islast
+    label.delete(status_label)
+    status_text = "Signal Bridge: " + i_direction + " | "
+    if not entry_hit_fired
+        status_text += "Waiting for entry..."
+    else if sl_hit_fired
+        status_text += "SL HIT"
+    else if tp3_hit_fired
+        status_text += "TP3 HIT (Full Win)"
+    else if tp2_hit_fired
+        status_text += "TP2 HIT (watching TP3)"
+    else if tp1_hit_fired
+        status_text += "TP1 HIT (watching TP2)"
+    else
+        status_text += "ACTIVE (watching TP1/SL)"
+
+    status_label := label.new(
+      bar_index, high,
+      status_text,
+      style=label.style_label_down,
+      color=sl_hit_fired ? color.red : tp1_hit_fired ? color.green : color.gray,
+      textcolor=color.white,
+      size=size.small
+    )
