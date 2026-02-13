@@ -1,0 +1,30 @@
+# Signal Bridge - Ultimate Signal Provider Network
+# Vercel-optimized (no heavy/unused packages)
+# Python 3.11+
+
+# Web Framework
+fastapi==0.115.6
+python-multipart==0.0.19
+
+# Database
+supabase==2.11.0
+python-dotenv==1.0.1
+
+# Data Models & Validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# HTTP Client (async - used for all price fetching)
+httpx==0.28.1
+
+# WebSocket support (lightweight - for Binance WS manager init)
+websockets==14.1
+
+# Crypto & Security
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# Utilities
+python-dateutil==2.9.0
+pytz==2024.2
+orjson==3.10.14
