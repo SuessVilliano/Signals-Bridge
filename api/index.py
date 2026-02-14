@@ -27,7 +27,7 @@ except Exception as exc:
 
     app = FastAPI()
 
-    @app.get("/{full_path:path}")
+    @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
     async def _startup_error(full_path: str = ""):
         return PlainTextResponse(
             f"Signal Bridge failed to start.\n\n{_err}",
