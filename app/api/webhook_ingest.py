@@ -104,6 +104,10 @@ async def ingest_tradingview(
             logger.error(f"Failed to find any active provider: {e}")
             raise HTTPException(500, "No active provider found. Create one at POST /api/v1/providers")
 
+    if not provider:
+        logger.error("No provider resolved. Check that SUPABASE_SERVICE_KEY is set (not just SUPABASE_KEY) and that a provider exists in the providers table.")
+        raise HTTPException(500, "No active provider found. Ensure SUPABASE_SERVICE_KEY is set in environment variables.")
+
     provider_id = provider["id"]
 
     # 3. Normalize
