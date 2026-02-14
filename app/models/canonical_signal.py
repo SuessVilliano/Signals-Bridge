@@ -83,8 +83,8 @@ class CanonicalSignal(BaseModel):
     # Trade levels
     direction: SignalDirection = Field(description="Trade direction (LONG or SHORT)")
     entry_price: float = Field(description="Entry price for the trade")
-    sl: float = Field(description="Stop-loss price")
-    tp1: float = Field(description="First take-profit level")
+    sl: Optional[float] = Field(default=None, description="Stop-loss price")
+    tp1: Optional[float] = Field(default=None, description="First take-profit level")
     tp2: Optional[float] = Field(default=None, description="Second take-profit level")
     tp3: Optional[float] = Field(default=None, description="Third take-profit level")
 
@@ -107,8 +107,10 @@ class CanonicalSignal(BaseModel):
             risk_distance: Absolute distance from entry to stop-loss
             rr_ratio: Ratio of TP1 distance to risk distance
         """
+        if self.sl is None:
+            return
         self.risk_distance = abs(self.entry_price - self.sl)
-        if self.risk_distance > 0:
+        if self.risk_distance > 0 and self.tp1 is not None:
             tp1_distance = abs(self.tp1 - self.entry_price)
             self.rr_ratio = round(tp1_distance / self.risk_distance, 4)
 
@@ -252,8 +254,8 @@ class NotificationPayload(BaseModel):
     symbol: str = Field(description="Trading symbol")
     direction: str = Field(description="Trade direction (LONG or SHORT)")
     entry_price: float = Field(description="Entry price")
-    sl: float = Field(description="Stop-loss price")
-    tp1: float = Field(description="First take-profit level")
+    sl: Optional[float] = Field(default=None, description="Stop-loss price")
+    tp1: Optional[float] = Field(default=None, description="First take-profit level")
     tp2: Optional[float] = Field(default=None, description="Second take-profit level")
     tp3: Optional[float] = Field(default=None, description="Third take-profit level")
     hit_price: Optional[float] = Field(default=None, description="Price at which the event occurred")

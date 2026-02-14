@@ -98,9 +98,9 @@ class WebhookSender:
                 # Update webhook config: reset consecutive failures, update last delivery
                 sb = get_supabase()
                 try:
-                    sb.table("outbound_webhooks").update({
+                    sb.table("webhook_configs").update({
                         "consecutive_failures": 0,
-                        "last_delivery_at": datetime.now(timezone.utc).isoformat(),
+                        "last_sent_at": datetime.now(timezone.utc).isoformat(),
                     }).eq("id", webhook_id).execute()
                 except Exception as e:
                     logger.error(f"Failed to update webhook status: {e}")
@@ -112,7 +112,7 @@ class WebhookSender:
         try:
             # Increment consecutive failures
             new_failures = webhook_config.get("consecutive_failures", 0) + 1
-            sb.table("outbound_webhooks").update({
+            sb.table("webhook_configs").update({
                 "consecutive_failures": new_failures,
             }).eq("id", webhook_id).execute()
 
@@ -219,14 +219,13 @@ class WebhookSender:
         sb = get_supabase()
 
         try:
-            sb.table("notification_logs").insert({
-                "webhook_id": webhook_id,
-                "event_id": event_id,
-                "url": url,
-                "status_code": status_code,
-                "success": success,
-                "response_text": response_text,
-                "logged_at": datetime.now(timezone.utc).isoformat(),
+            sb.table("notification_log").insert({
+                "webhook_config_id": webhook_id,
+                "event_type": event_id,
+                "payload": {"url": url, "event_id": event_id},
+                "http_status": status_code,
+                "response_body": response_text,
+                "sent_at": datetime.now(timezone.utc).isoformat(),
             }).execute()
 
             level = "info" if success else "warning"

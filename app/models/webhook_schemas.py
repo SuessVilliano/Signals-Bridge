@@ -41,8 +41,8 @@ class TradingViewWebhook(BaseModel):
         alias="entry_price",
         description="Entry price for the trade"
     )
-    sl: float = Field(description="Stop-loss price")
-    tp1: float = Field(description="First take-profit level")
+    sl: Optional[float] = Field(default=None, description="Stop-loss price")
+    tp1: Optional[float] = Field(default=None, description="First take-profit level")
 
     # Optional fields
     alert: Optional[str] = Field(

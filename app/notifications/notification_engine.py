@@ -104,7 +104,7 @@ class NotificationEngine:
             provider_id = signal.get("provider_id")
 
             # Fetch all webhooks for this provider
-            result = sb.table("outbound_webhooks").select("*").eq("provider_id", provider_id).eq("is_active", True).execute()
+            result = sb.table("webhook_configs").select("*").eq("provider_id", provider_id).eq("is_active", True).execute()
             webhooks = result.data or []
 
             # Filter by event_type subscription and circuit breaker

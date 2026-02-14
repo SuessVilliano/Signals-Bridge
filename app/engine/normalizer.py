@@ -30,35 +30,8 @@ from app.models.canonical_signal import (
 )
 
 
-class TradingViewWebhook(BaseModel):
-    """
-    Input model for TradingView webhook payloads.
-
-    Represents the JSON structure sent by TradingView Pine Script alerts.
-    """
-    symbol: str = Field(description="Trading symbol (may include futures suffix)")
-    direction: str = Field(description="Trade direction: LONG or SHORT")
-    entry: float = Field(description="Entry price")
-    sl: float = Field(description="Stop-loss price")
-    tp1: float = Field(description="First take-profit level")
-    tp2: Optional[float] = Field(default=None, description="Second take-profit level")
-    tp3: Optional[float] = Field(default=None, description="Third take-profit level")
-    timestamp: Optional[str] = Field(default=None, description="ISO 8601 timestamp or Unix epoch")
-    strategy_name: Optional[str] = Field(default=None, description="Name of the strategy")
-    external_id: Optional[str] = Field(default=None, description="External signal ID")
-
-
-class PineScriptEvent(BaseModel):
-    """
-    Input model for PineScript event payloads.
-
-    Represents events generated directly from PineScript indicators.
-    """
-    symbol: str = Field(description="Trading symbol")
-    price: float = Field(description="Price at which the event occurred")
-    event_type: str = Field(description="Event type: entry, tp1, tp2, tp3, sl")
-    timestamp: Optional[str] = Field(default=None, description="ISO 8601 timestamp")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
+# Import models from canonical location to avoid duplication
+from app.models.webhook_schemas import TradingViewWebhook, PineScriptEvent
 
 
 class SignalNormalizer:
@@ -247,9 +220,9 @@ class SignalNormalizer:
             symbol=normalized_symbol,
             asset_class=asset_class,
             direction=direction,
-            entry_price=float(webhook.entry or webhook.model_extra.get('entry_price', 0)),
-            sl=float(webhook.sl),
-            tp1=float(webhook.tp1),
+            entry_price=float(webhook.entry if webhook.entry is not None else (getattr(webhook, 'entry_price', None) or webhook.model_extra.get('entry_price', 0) or webhook.model_extra.get('entry', 0))),
+            sl=float(webhook.sl) if webhook.sl is not None else None,
+            tp1=float(webhook.tp1) if webhook.tp1 is not None else None,
             tp2=float(webhook.tp2) if webhook.tp2 is not None else None,
             tp3=float(webhook.tp3) if webhook.tp3 is not None else None,
             status=SignalStatus.PENDING,

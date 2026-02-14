@@ -135,7 +135,7 @@ async def create_webhook(req: CreateWebhookRequest):
         now = datetime.now(timezone.utc).isoformat()
 
         # Insert webhook config
-        result = sb.table("outbound_webhooks").insert({
+        result = sb.table("webhook_configs").insert({
             "provider_id": req.provider_id,
             "name": req.name,
             "url": str(req.url),
@@ -192,7 +192,7 @@ async def list_webhooks(
     sb = get_supabase()
 
     try:
-        query = sb.table("outbound_webhooks").select("*")
+        query = sb.table("webhook_configs").select("*")
 
         if provider_id:
             query = query.eq("provider_id", provider_id)
@@ -204,7 +204,7 @@ async def list_webhooks(
         total = len(count_result.data) if count_result.data else 0
 
         # Apply pagination
-        query = sb.table("outbound_webhooks").select("*")
+        query = sb.table("webhook_configs").select("*")
         if provider_id:
             query = query.eq("provider_id", provider_id)
         if is_active is not None:
@@ -252,12 +252,12 @@ async def delete_webhook(webhook_id: str):
 
     try:
         # Verify webhook exists
-        result = sb.table("outbound_webhooks").select("*").eq("id", webhook_id).execute()
+        result = sb.table("webhook_configs").select("*").eq("id", webhook_id).execute()
         if not result.data:
             raise HTTPException(404, f"Webhook not found: {webhook_id}")
 
         # Delete webhook
-        sb.table("outbound_webhooks").delete().eq("id", webhook_id).execute()
+        sb.table("webhook_configs").delete().eq("id", webhook_id).execute()
 
         logger.info(f"Outbound webhook deleted: {webhook_id}")
 
