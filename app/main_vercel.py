@@ -9,10 +9,13 @@ Key difference from main.py:
 """
 
 import logging
+import pathlib
 from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from app.config import settings
 
@@ -52,6 +55,16 @@ app.include_router(signals_router)
 app.include_router(providers_router)
 app.include_router(webhooks_outbound_router)
 app.include_router(reports_router)
+
+# --- Frontend Dashboard ---
+_static_dir = pathlib.Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+
+@app.get("/dashboard", tags=["frontend"], include_in_schema=False)
+async def dashboard():
+    """Serve the Signal Bridge dashboard UI."""
+    return FileResponse(str(_static_dir / "index.html"))
 
 
 # ============================================================
