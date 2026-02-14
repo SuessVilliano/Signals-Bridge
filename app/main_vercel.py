@@ -27,7 +27,7 @@ logger = logging.getLogger("signal_bridge")
 app = FastAPI(
     title="Signal Bridge",
     description="Ultimate Signal Provider Network — Vercel Serverless Edition",
-    version="1.0.0",
+    version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
