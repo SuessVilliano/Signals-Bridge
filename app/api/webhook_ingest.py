@@ -69,38 +69,40 @@ async def ingest_tradingview(
         logger.error(f"Failed to parse JSON body: {e}")
         raise HTTPException(400, "Invalid JSON body")
 
-    # 2. Authenticate
+    # 2. Resolve provider
+    #    TradingView webhooks don't support custom headers, so we resolve
+    #    the provider from the JSON body ("provider" field) or X-API-Key header.
     sb = get_supabase()
     provider = None
 
+    # Option A: API key in header (for programmatic clients)
     if x_api_key:
-        # Look up provider by API key
         try:
-            result = sb.table("providers").select("*").eq("api_key", x_api_key).eq("is_active", True).execute()
+            key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+            result = sb.table("providers").select("*").eq("api_key_hash", key_hash).eq("is_active", True).execute()
             if result.data:
                 provider = result.data[0]
         except Exception as e:
-            logger.warning(f"Provider lookup failed: {e}")
+            logger.warning(f"Provider lookup by API key failed: {e}")
 
-    if not provider:
-        # Allow unauthenticated for testing, assign to default provider
+    # Option B: Provider name in the webhook body (for TradingView)
+    if not provider and body.get("provider"):
         try:
-            result = sb.table("providers").select("*").eq("name", "default").execute()
+            result = sb.table("providers").select("*").eq("name", body["provider"]).eq("is_active", True).execute()
             if result.data:
                 provider = result.data[0]
-            else:
-                # Create default provider
-                result = sb.table("providers").insert({
-                    "name": "default",
-                    "description": "Default provider for testing",
-                    "api_key": "default",
-                    "webhook_secret": "default",
-                    "is_active": True,
-                }).execute()
+        except Exception as e:
+            logger.warning(f"Provider lookup by name failed: {e}")
+
+    # Option C: Fall back to first active provider (single-provider setups)
+    if not provider:
+        try:
+            result = sb.table("providers").select("*").eq("is_active", True).order("created_at").limit(1).execute()
+            if result.data:
                 provider = result.data[0]
         except Exception as e:
-            logger.error(f"Failed to get or create default provider: {e}")
-            raise HTTPException(500, "Provider initialization failed")
+            logger.error(f"Failed to find any active provider: {e}")
+            raise HTTPException(500, "No active provider found. Create one at POST /api/v1/providers")
 
     provider_id = provider["id"]
 
