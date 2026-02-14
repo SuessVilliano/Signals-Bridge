@@ -40,3 +40,5 @@ htmlcov/
 
 # Zip archives (source already extracted)
 *.zip
+.vercel
+deploy_output.txt
