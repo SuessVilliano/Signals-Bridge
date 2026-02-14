@@ -206,7 +206,6 @@ async def create_provider(req: CreateProviderRequest):
         result = sb.table("providers").insert({
             "name": req.name,
             "description": req.description,
-            "api_key": api_key,
             "api_key_hash": api_key_hash,
             "webhook_secret": webhook_secret,
             "is_active": True,
