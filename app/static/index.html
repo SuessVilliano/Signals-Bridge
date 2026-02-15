@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal Bridge — Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Mobile sidebar toggle -->
+  <button class="mobile-toggle" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <div class="app-layout">
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <h1>
+          <span class="brand-icon"><i class="fas fa-bolt" style="font-size:13px"></i></span>
+          Signal Bridge
+        </h1>
+        <div class="brand-sub">Trading Signal Network</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+          <i class="fas fa-th-large"></i> Dashboard
+        </a>
+        <a class="nav-item" data-page="signals" onclick="navigate('signals')">
+          <i class="fas fa-signal"></i> Signals
+          <span class="badge" id="active-signals-badge">0</span>
+        </a>
+
+        <div class="nav-section-label">Insights</div>
+        <a class="nav-item" data-page="analytics" onclick="navigate('analytics')">
+          <i class="fas fa-chart-line"></i> Analytics
+        </a>
+        <a class="nav-item" data-page="providers" onclick="navigate('providers')">
+          <i class="fas fa-trophy"></i> Providers
+        </a>
+
+        <div class="nav-section-label">Connect</div>
+        <a class="nav-item" data-page="integrations" onclick="navigate('integrations')">
+          <i class="fas fa-plug"></i> Integrations
+        </a>
+        <a class="nav-item" href="/docs" target="_blank">
+          <i class="fas fa-book"></i> API Docs
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot" id="health-dot"></span>
+        <span class="status-text" id="health-text">Checking...</span>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="main-content">
+
+      <!-- ===== DASHBOARD PAGE ===== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h2>Dashboard</h2>
+            <div class="subtitle">Real-time signal monitoring overview</div>
+          </div>
+          <div class="time-selector" id="dashboard-time-selector">
+            <button class="active" data-days="7">7D</button>
+            <button data-days="30">30D</button>
+            <button data-days="90">90D</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="dashboard-kpis">
+          <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-signal"></i> Total Signals</div>
+            <div class="kpi-value" id="kpi-total">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-bolt"></i> Active Now</div>
+            <div class="kpi-value blue" id="kpi-active">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-bullseye"></i> Win Rate</div>
+            <div class="kpi-value green" id="kpi-winrate">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-chart-line"></i> Total R-Value</div>
+            <div class="kpi-value accent" id="kpi-rvalue">—</div>
+          </div>
+        </div>
+
+        <!-- Active Signals + Recent Activity -->
+        <div class="grid-2-1">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-bolt" style="color:var(--blue);margin-right:6px"></i> Active Signals</h3>
+              <button class="btn btn-sm btn-secondary" onclick="navigate('signals')">View All</button>
+            </div>
+            <div class="card-body no-pad">
+              <div id="dashboard-active-signals">
+                <div class="loading-spinner"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-users" style="color:var(--accent);margin-right:6px"></i> Top Providers</h3>
+            </div>
+            <div class="card-body no-pad">
+              <div id="dashboard-top-providers">
+                <div class="loading-spinner"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Signals Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-clock" style="color:var(--yellow);margin-right:6px"></i> Recent Signals</h3>
+          </div>
+          <div class="card-body no-pad">
+            <div id="dashboard-recent-signals">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SIGNALS PAGE ===== -->
+      <div class="page" id="page-signals">
+        <div class="page-header">
+          <div>
+            <h2>Signals</h2>
+            <div class="subtitle">Browse and filter all trading signals</div>
+          </div>
+        </div>
+
+        <div class="filter-bar" id="signals-filters">
+          <select id="filter-status" onchange="loadSignals()">
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="ACTIVE">Active</option>
+            <option value="TP1_HIT">TP1 Hit</option>
+            <option value="TP2_HIT">TP2 Hit</option>
+            <option value="TP3_HIT">TP3 Hit</option>
+            <option value="SL_HIT">SL Hit</option>
+            <option value="CLOSED">Closed</option>
+            <option value="INVALID">Invalid</option>
+          </select>
+          <input type="text" id="filter-symbol" placeholder="Symbol (e.g. NQ, ES)" oninput="debounceLoadSignals()">
+          <select id="filter-provider" onchange="loadSignals()">
+            <option value="">All Providers</option>
+          </select>
+          <div style="margin-left:auto">
+            <button class="btn btn-sm btn-secondary" onclick="loadSignals()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body no-pad">
+            <div id="signals-table-container">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANALYTICS PAGE ===== -->
+      <div class="page" id="page-analytics">
+        <div class="page-header">
+          <div>
+            <h2>Analytics</h2>
+            <div class="subtitle">Performance metrics, charts, and breakdowns</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select id="analytics-provider" onchange="loadAnalytics()" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);padding:8px 12px;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Select Provider</option>
+            </select>
+            <div class="time-selector" id="analytics-time-selector">
+              <button data-days="7">7D</button>
+              <button class="active" data-days="30">30D</button>
+              <button data-days="90">90D</button>
+              <button data-days="365">1Y</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="analytics-content">
+          <div class="empty-state">
+            <i class="fas fa-chart-bar"></i>
+            <h4>Select a Provider</h4>
+            <p>Choose a signal provider above to view their performance analytics</p>
+          </div>
+        </div>
+
+        <!-- Analytics panels (hidden until provider selected) -->
+        <div id="analytics-panels" style="display:none">
+          <!-- KPIs -->
+          <div class="kpi-grid" id="analytics-kpis"></div>
+
+          <div class="grid-2-1">
+            <!-- Equity Curve -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fas fa-chart-area" style="color:var(--accent);margin-right:6px"></i> Equity Curve (R-Value)</h3>
+              </div>
+              <div class="card-body">
+                <div class="chart-container" style="height:300px">
+                  <canvas id="equity-chart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Win Rate Donut -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fas fa-bullseye" style="color:var(--green);margin-right:6px"></i> Win / Loss</h3>
+              </div>
+              <div class="card-body">
+                <div class="chart-container" style="height:220px">
+                  <canvas id="winloss-chart"></canvas>
+                </div>
+                <div id="winloss-stats"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Metrics -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Performance Metrics</h3>
+              </div>
+              <div class="card-body" id="performance-metrics"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Risk Metrics</h3>
+              </div>
+              <div class="card-body" id="risk-metrics"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROVIDERS PAGE ===== -->
+      <div class="page" id="page-providers">
+        <div class="page-header">
+          <div>
+            <h2>Providers</h2>
+            <div class="subtitle">Signal provider leaderboard and performance rankings</div>
+          </div>
+          <div class="time-selector" id="providers-time-selector">
+            <button class="active" data-days="30">30D</button>
+            <button data-days="90">90D</button>
+            <button data-days="365">1Y</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-trophy" style="color:var(--yellow);margin-right:6px"></i> Provider Leaderboard</h3>
+          </div>
+          <div class="card-body no-pad">
+            <div id="leaderboard-container">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Provider Cards -->
+        <div style="margin-top:24px">
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">All Providers</h3>
+          <div id="providers-grid" class="kpi-grid">
+            <div class="loading-spinner"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== INTEGRATIONS PAGE ===== -->
+      <div class="page" id="page-integrations">
+        <div class="page-header">
+          <div>
+            <h2>Integrations</h2>
+            <div class="subtitle">Connect Signal Bridge to HybridJournal and other apps</div>
+          </div>
+        </div>
+
+        <!-- HybridJournal Integration -->
+        <div class="integration-card">
+          <h4>
+            <i class="fas fa-book" style="color:var(--accent)"></i>
+            HybridJournal Integration
+          </h4>
+          <p>
+            Send real-time signal notifications to your HybridJournal app. Every time a signal is created,
+            a take-profit is hit, or a stop-loss triggers, Signal Bridge will send a webhook to HybridJournal
+            so your journal stays in sync with your signals.
+          </p>
+
+          <div class="setup-steps">
+            <div class="setup-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h5>Get your HybridJournal Webhook URL</h5>
+                <p>In your HybridJournal app, go to Settings &rarr; Integrations &rarr; Incoming Webhooks. Copy the webhook URL.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h5>Configure Outbound Webhook Below</h5>
+                <p>Paste the URL into the form below, select which signal events you want to forward, and save.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h5>Test the Connection</h5>
+                <p>Click "Test Webhook" to send a test payload and verify HybridJournal receives it correctly.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Webhook Configuration Form -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-plus" style="color:var(--green);margin-right:6px"></i> Add Webhook</h3>
+            </div>
+            <div class="card-body">
+              <form id="webhook-form" onsubmit="createWebhook(event)">
+                <div class="form-group">
+                  <label>Provider</label>
+                  <select id="webhook-provider" required>
+                    <option value="">Select provider...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Webhook Name</label>
+                  <input type="text" id="webhook-name" placeholder="e.g. HybridJournal Signals" required>
+                </div>
+                <div class="form-group">
+                  <label>Destination URL</label>
+                  <input type="url" id="webhook-url" placeholder="https://your-app.com/api/webhooks/signals" required>
+                  <div class="help-text">The URL that will receive POST requests with signal events</div>
+                </div>
+                <div class="form-group">
+                  <label>Event Types</label>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="event-type-checkboxes">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="ENTRY_REGISTERED" checked> Entry Registered
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="ENTRY_HIT" checked> Entry Hit
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="TP1_HIT" checked> TP1 Hit
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="TP2_HIT" checked> TP2 Hit
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="TP3_HIT" checked> TP3 Hit
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                      <input type="checkbox" value="SL_HIT" checked> SL Hit
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Custom Headers (optional, JSON)</label>
+                  <textarea id="webhook-headers" placeholder='{"Authorization": "Bearer your-token"}'></textarea>
+                  <div class="help-text">Add authentication headers if your destination requires them</div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">
+                  <i class="fas fa-plus"></i> Create Webhook
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Active Webhooks -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-link" style="color:var(--cyan);margin-right:6px"></i> Active Webhooks</h3>
+              <button class="btn btn-sm btn-secondary" onclick="loadWebhooks()">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+            <div class="card-body no-pad">
+              <div id="webhooks-list">
+                <div class="loading-spinner"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- API Endpoint Reference -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-header">
+            <h3><i class="fas fa-code" style="color:var(--text-muted);margin-right:6px"></i> API Endpoint Reference</h3>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+              Use these endpoints to integrate Signal Bridge with any application.
+            </p>
+            <div class="code-block">
+              <strong style="color:var(--green)">POST</strong> /api/v1/webhook/tradingview — Ingest TradingView signals<br>
+              <strong style="color:var(--green)">POST</strong> /api/v1/webhook/pinescript — Ingest PineScript events<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/signals — List all signals (paginated)<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/signals/active/list — Active signals only<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/signals/{id} — Signal detail + event history<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/providers — List providers<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/reports/performance?provider_id=X — Performance report<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/reports/equity-curve?provider_id=X — Equity curve<br>
+              <strong style="color:var(--blue)">GET</strong>&nbsp; /api/v1/reports/leaderboard — Provider rankings<br>
+              <strong style="color:var(--green)">POST</strong> /api/v1/webhooks/outbound — Create outbound webhook<br>
+              <strong style="color:var(--red)">DEL</strong>&nbsp; /api/v1/webhooks/outbound/{id} — Delete webhook
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Signal Detail Modal -->
+  <div class="modal-overlay" id="signal-modal" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modal-title">Signal Detail</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
