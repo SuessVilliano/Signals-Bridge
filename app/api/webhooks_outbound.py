@@ -292,7 +292,7 @@ async def test_webhook(webhook_id: str, req: Optional[TestWebhookRequest] = None
 
     try:
         # Fetch webhook config
-        result = sb.table("outbound_webhooks").select("*").eq("id", webhook_id).execute()
+        result = sb.table("webhook_configs").select("*").eq("id", webhook_id).execute()
         if not result.data:
             raise HTTPException(404, f"Webhook not found: {webhook_id}")
 

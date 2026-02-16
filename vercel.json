@@ -14,7 +14,7 @@
   "crons": [
     {
       "path": "/api/v1/cron/poll-prices",
-      "schedule": "0 10 * * *"
+      "schedule": "* * * * *"
     }
   ]
 }
