@@ -54,7 +54,7 @@ class SmartScheduler:
         self._last_zone_cache: Dict[str, ProximityZone] = {}
         self._signal_symbols: Dict[str, List[str]] = defaultdict(list)  # symbol -> [signal_ids]
 
-    async def calculate_next_poll(self, proximity_zone: ProximityZone) -> int:
+    def calculate_next_poll(self, proximity_zone: ProximityZone) -> int:
         """
         Calculate seconds until next poll based on proximity zone.
 
@@ -200,7 +200,7 @@ class SmartScheduler:
         self._last_zone_cache[signal_id] = zone
 
         # Get polling interval for this zone
-        next_poll_seconds = await self.calculate_next_poll(zone)
+        next_poll_seconds = self.calculate_next_poll(zone)
 
         # Schedule next poll
         next_poll_at = self.schedule_next_poll(signal_id, next_poll_seconds)

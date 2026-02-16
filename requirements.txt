@@ -28,3 +28,6 @@ python-jose[cryptography]==3.3.0
 python-dateutil==2.9.0
 pytz==2024.2
 orjson==3.10.14
+
+# ASGI Server
+uvicorn[standard]==0.34.0

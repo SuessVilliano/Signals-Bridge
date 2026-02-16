@@ -294,6 +294,7 @@ class PriceQuote(BaseModel):
     price: float = Field(description="Current price")
     bid: Optional[float] = Field(default=None, description="Bid price")
     ask: Optional[float] = Field(default=None, description="Ask price")
+    asset_class: Optional["AssetClass"] = Field(default=None, description="Asset class of the instrument")
     source: str = Field(description="Source of the price quote")
     timestamp: datetime = Field(description="UTC timestamp of the quote")
 

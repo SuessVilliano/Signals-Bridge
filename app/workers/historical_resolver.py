@@ -329,12 +329,13 @@ class HistoricalResolver:
             # Fetch candles
             try:
                 asset_class = sig_list[0].get("asset_class", "OTHER")
-                raw_candles = await self.poller.get_historical_candles(
+                raw_result = await self.poller.get_historical_candles(
                     symbol=sym,
                     interval="1h",  # hourly candles for backtesting
-                    start_date=candle_start.strftime("%Y-%m-%d"),
-                    end_date=candle_end.strftime("%Y-%m-%d"),
+                    start=candle_start,
+                    end=candle_end,
                 )
+                raw_candles = raw_result.get("candles") if raw_result else None
                 candles = [
                     HistoricalCandle(
                         timestamp=c["timestamp"] if isinstance(c["timestamp"], datetime)
